@@ -89,7 +89,7 @@ wui::util::LoadLanguageDLL: unable to load vmappsdk-zh_CN.dll
 
 本仓库**不重新分发**语言文件（版权与上游许可原因）。你需要自己获取。**无论从哪里拿到，都要先验签。**
 
-> 完整获取入口与校验值见 **[downloads.md](downloads.md) 第五节**。下面是要点。
+> 最省事的是**网盘镜像**（安装包与语言文件都在里面，免注册）；完整获取入口与校验值见 **[downloads.md](downloads.md)**。下面是要点。
 
 ### 从哪里获取
 

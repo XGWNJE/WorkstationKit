@@ -8,6 +8,20 @@
 
 ---
 
+## 最省事：网盘镜像（免注册）
+
+整理者已把安装包与中文语言文件放在夸克网盘，链接永久有效：
+
+**https://pan.quark.cn/s/3577e8370038**　　提取码：`xLms`
+
+包内附有《说明与校验》清单，包含每个文件的大小与 SHA256。
+
+**拿到后仍然建议按下面各节的哈希与签名核对一遍** —— 第三方镜像的价值是省事，不是免检。尤其两个语言 DLL 是会被载入进程的二进制，务必验签。
+
+> 这是整理者自行汇总的镜像，非官方渠道。文件本身即官方安装包与 17.6.4 的语言文件（可用签名与哈希自证），但官方渠道永远是更稳的选择。
+
+---
+
 ## 一、VMware Workstation 本体（26H1u1）
 
 | 项目 | 内容 |
@@ -166,8 +180,8 @@ python workstation-zhcn\tools\verify-language-pack.py <vmware.vmsg路径> "<安�
 
 | 需要的东西 | 获取方式 | 校验 |
 |---|---|---|
-| Workstation 26H1u1 安装包 | Broadcom 门户（需登录） | Authenticode 签名 + SHA256 |
+| Workstation 26H1u1 安装包 | **夸克网盘镜像**（免注册），或 Broadcom 门户（需登录） | Authenticode 签名 + SHA256 |
 | Win7 旗舰版 SP1 x64 镜像 | MSDN 原版镜像站 | **SHA1** 比对 |
 | KB4490628 / KB4474419 | 微软官方 CDN 直链 | 文件名内嵌 SHA-1 |
 | VMware Tools | Workstation 自带 `windows.iso` | 版本号 13.1.5 |
-| 中文语言文件 | 官方 17.6.x 安装包提取，或社区成品 | **Authenticode 签名（Broadcom）** |
+| 中文语言文件 | **夸克网盘镜像**，或官方 17.6.x 安装包提取，或社区成品 | **Authenticode 签名（Broadcom）** |
