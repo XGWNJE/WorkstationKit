@@ -1,0 +1,76 @@
+# Windows 7 x64 虚拟机配置参考（实测可用）
+#
+# 使用前把 <> 占位符换成你自己的路径。要点说明见 docs/win7-unattended-install.md。
+# 只保留有意义的项；Workstation 会在开关机时自行补写 UUID、槽位等运行期条目。
+
+.encoding = "UTF-8"
+config.version = "8"
+virtualHW.version = "22"
+guestOS = "windows7-64"
+
+# Win7 标准安装走 BIOS/MBR；UEFI 需要特殊处理
+firmware = "bios"
+
+# 资源分配（按需调整）
+numvcpus = "4"
+cpuid.coresPerSocket = "4"
+memsize = "8192"
+
+svga.present = "TRUE"
+# 3D 加速：Aero 的前提。注意这是【开关机读取】的设置，必须关机后修改。
+mks.enable3d = "TRUE"
+svga.graphicsMemoryKB = "262144"
+
+pciBridge0.present = "TRUE"
+pciBridge4.present = "TRUE"
+pciBridge4.virtualDev = "pcieRootPort"
+pciBridge4.functions = "8"
+pciBridge5.present = "TRUE"
+pciBridge5.virtualDev = "pcieRootPort"
+pciBridge5.functions = "8"
+pciBridge6.present = "TRUE"
+pciBridge6.virtualDev = "pcieRootPort"
+pciBridge6.functions = "8"
+pciBridge7.present = "TRUE"
+pciBridge7.virtualDev = "pcieRootPort"
+pciBridge7.functions = "8"
+vmci0.present = "TRUE"
+hpet0.present = "TRUE"
+tools.remindInstall = "FALSE"
+
+# --- 存储：必须用 SATA。Win7 x64 没有内置 NVMe 驱动，用 NVMe 会在分区界面看不到磁盘 ---
+sata0.present = "TRUE"
+
+sata0:0.present = "TRUE"
+sata0:0.fileName = "<虚拟机目录>\Windows 7 Ultimate x64.vmdk"
+
+# 安装镜像（安装完成后建议断开，避免每次启动都出现"按任意键从光盘启动"）
+sata0:1.present = "TRUE"
+sata0:1.deviceType = "cdrom-image"
+sata0:1.fileName = "<镜像目录>\cn_windows_7_ultimate_with_sp1_x64_dvd_u_677408.iso"
+sata0:1.startConnected = "TRUE"
+
+# 应答光盘（Autounattend.xml + 置备脚本 + 两个 .msu）
+sata0:2.present = "TRUE"
+sata0:2.deviceType = "cdrom-image"
+sata0:2.fileName = "<虚拟机目录>\unattend.iso"
+sata0:2.startConnected = "TRUE"
+
+# VMware Tools 光盘（内置镜像，置备脚本从中安装 Tools）
+sata0:3.present = "TRUE"
+sata0:3.deviceType = "cdrom-image"
+sata0:3.fileName = "<Workstation安装目录>\windows.iso"
+sata0:3.startConnected = "TRUE"
+
+# --- 网络：Win7 自带 e1000 驱动；vmxnet3 必须先装 Tools 才可用 ---
+ethernet0.present = "TRUE"
+ethernet0.virtualDev = "e1000"
+ethernet0.connectionType = "nat"
+ethernet0.addressType = "generated"
+ethernet0.startConnected = "TRUE"
+
+# --- USB：Win7 没有 USB3 驱动，保留 USB 2.0 ---
+usb.present = "TRUE"
+usb_xhci.present = "FALSE"
+
+bios.bootOrder = "cdrom,hdd"

@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Windows 7 旗舰版 SP1 x64 无人值守应答文件（实测可用）
+
+  用法：放到一张单独的小光盘根目录（不是改造原版镜像），
+        Windows 安装程序会扫描可移动介质根目录中的 Autounattend.xml。
+
+  部署前必须修改：
+        REPLACE_WITH_YOUR_PASSWORD —— 出现两次，必须逐字相同：
+        LocalAccounts 里账户的密码，与 AutoLogon 的密码。
+
+  注意：这里刻意不写 <AdministratorPassword>。
+       该设置项在 Win7 的 oobeSystem 组件里不存在（属 Windows 8+），
+       写入会导致整个 oobeSystem 阶段以 0x8030000C 中止。
+-->
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+
+  <settings pass="windowsPE">
+
+    <component name="Microsoft-Windows-International-Core-WinPE"
+               processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
+               language="neutral" versionScope="nonSxS"
+               xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <SetupUILanguage>
+        <UILanguage>zh-CN</UILanguage>
+      </SetupUILanguage>
+      <InputLocale>0804:00000804</InputLocale>
+      <SystemLocale>zh-CN</SystemLocale>
+      <UILanguage>zh-CN</UILanguage>
+      <UserLocale>zh-CN</UserLocale>
+    </component>
+
+    <component name="Microsoft-Windows-Setup"
+               processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
+               language="neutral" versionScope="nonSxS"
+               xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+      <!-- 整盘擦除 + 单个主分区。Win7 原生安装走 BIOS/MBR，单分区即可启动。 -->
+      <DiskConfiguration>
+        <WillShowUI>OnError</WillShowUI>
+        <Disk wcm:action="add">
+          <DiskID>0</DiskID>
+          <WillWipeDisk>true</WillWipeDisk>
+          <CreatePartitions>
+            <CreatePartition wcm:action="add">
+              <Order>1</Order>
+              <Type>Primary</Type>
+              <Extend>true</Extend>
+            </CreatePartition>
+          </CreatePartitions>
+          <ModifyPartitions>
+            <ModifyPartition wcm:action="add">
+              <Order>1</Order>
+              <PartitionID>1</PartitionID>
+              <Active>true</Active>
+              <Format>NTFS</Format>
+              <Label>Windows 7</Label>
+              <Letter>C</Letter>
+            </ModifyPartition>
+          </ModifyPartitions>
+        </Disk>
+      </DiskConfiguration>
+
+      <!-- 索引 4 = 旗舰版。该镜像的映射：
+           1 家庭普通版 / 2 家庭高级版 / 3 专业版 / 4 旗舰版
+           可用 dism /Get-WimInfo /WimFile:<盘>:\sources\install.wim 自行核对。 -->
+      <ImageInstall>
+        <OSImage>
+          <InstallFrom>
+            <MetaData wcm:action="add">
+              <Key>/IMAGE/INDEX</Key>
+              <Value>4</Value>
+            </MetaData>
+          </InstallFrom>
+          <InstallTo>
+            <DiskID>0</DiskID>
+            <PartitionID>1</PartitionID>
+          </InstallTo>
+          <WillShowUI>OnError</WillShowUI>
+        </OSImage>
+      </ImageInstall>
+
+      <UserData>
+        <AcceptEula>true</AcceptEula>
+        <FullName>Owner</FullName>
+        <Organization>Owner</Organization>
+        <!-- 空密钥 + WillShowUI=Never：跳过密钥输入，进入 30 天宽限期。
+             激活是你与微软之间的事，本流程不涉及任何激活机制。 -->
+        <ProductKey>
+          <Key></Key>
+          <WillShowUI>Never</WillShowUI>
+        </ProductKey>
+      </UserData>
+    </component>
+  </settings>
+
+  <settings pass="oobeSystem">
+
+    <component name="Microsoft-Windows-International-Core"
+               processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
+               language="neutral" versionScope="nonSxS"
+               xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+      <InputLocale>0804:00000804</InputLocale>
+      <SystemLocale>zh-CN</SystemLocale>
+      <UILanguage>zh-CN</UILanguage>
+      <UserLocale>zh-CN</UserLocale>
+    </component>
+
+    <component name="Microsoft-Windows-Shell-Setup"
+               processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35"
+               language="neutral" versionScope="nonSxS"
+               xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+      <OOBE>
+        <HideEULAPage>true</HideEULAPage>
+        <NetworkLocation>Work</NetworkLocation>
+        <ProtectYourPC>3</ProtectYourPC>
+        <SkipMachineOOBE>true</SkipMachineOOBE>
+        <SkipUserOOBE>true</SkipUserOOBE>
+        <!-- 不要加 HideWirelessSetupInOOBE：那是 Windows 8+ 的设置项 -->
+      </OOBE>
+
+      <TimeZone>China Standard Time</TimeZone>
+      <RegisteredOwner>Owner</RegisteredOwner>
+      <RegisteredOrganization>Owner</RegisteredOrganization>
+
+      <!-- 关键：用 LocalAccounts 建账户，而不是 AdministratorPassword -->
+      <UserAccounts>
+        <LocalAccounts>
+          <LocalAccount wcm:action="add">
+            <Name>User</Name>
+            <DisplayName>User</DisplayName>
+            <Group>Administrators</Group>
+            <Password>
+              <Value>REPLACE_WITH_YOUR_PASSWORD</Value>
+              <PlainText>true</PlainText>
+            </Password>
+          </LocalAccount>
+        </LocalAccounts>
+      </UserAccounts>
+
+      <!-- 自动登录密码必须与上面账户密码逐字相同，否则登录失败、安装无法收尾 -->
+      <AutoLogon>
+        <Enabled>true</Enabled>
+        <LogonCount>30</LogonCount>
+        <Username>User</Username>
+        <Password>
+          <Value>REPLACE_WITH_YOUR_PASSWORD</Value>
+          <PlainText>true</PlainText>
+        </Password>
+      </AutoLogon>
+
+      <!-- 首次登录时把置备脚本从光盘调起来（脚本自行在所有盘符里查找自己） -->
+      <FirstLogonCommands>
+        <SynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <Description>run provisioning script</Description>
+          <CommandLine>cmd.exe /c for %i in (D: E: F: G: H: I: J:) do @if exist %i\w7payload.cmd call %i\w7payload.cmd phase1</CommandLine>
+        </SynchronousCommand>
+      </FirstLogonCommands>
+    </component>
+  </settings>
+</unattend>

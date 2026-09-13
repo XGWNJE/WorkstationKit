@@ -1,0 +1,6 @@
+# 默认统一 LF（跨平台源文件保持一致）
+* text=auto eol=lf
+
+# 例外：批处理文件必须 CRLF，否则 cmd.exe 对标签/goto 的解析可能异常
+*.cmd text eol=crlf
+*.bat text eol=crlf
