@@ -9,10 +9,8 @@ rem    phase1  ：装 KB4490628 → KB4474419（SHA-2 支持），然后重启
 rem    phase2  ：装 VMware Tools
 rem    verify  ：输出核验信息
 rem
-rem  设计要点（踩坑教训）：
-rem    1. 判据查真实状态，不用自建标记文件。
-rem       第一版用 tools.done 之类的标记做状态机，结果标记被写了、Tools 却没装上，
-rem       此后每次启动都判定"无事可做"，永久跳过。改成查补丁/Tools 是否真的存在才可靠。
+rem  设计约束：
+rem    1. 状态机直接检查补丁与 VMware Tools 的真实安装状态。
 rem    2. 装一个"登录自续钩子"，重启后自动继续。
 rem    3. 日志写文件，便于事后排查（客机没装 Tools 时可从宿主机读 VMDK 取出）。
 rem ============================================================================
@@ -130,6 +128,17 @@ reg query "HKLM\SOFTWARE\VMware, Inc.\VMware Tools" /v ProductVersion >> "%LOG%"
 reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System" /v EnableLUA >> "%LOG%" 2>&1
 if exist "%TOOLSDIR%\vmtoolsd.exe" echo vmtoolsd.exe present >> "%LOG%"
 if not exist "%TOOLSDIR%\vmtoolsd.exe" echo vmtoolsd.exe absent >> "%LOG%"
+
+rem --- 最终状态：User 无密码，并保持本地自动登录 ---
+reg delete "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" /v w7payload /f >> "%LOG%" 2>&1
+net user User "" >> "%LOG%" 2>&1
+echo clear User password rc=!ERRORLEVEL! >> "%LOG%"
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultUserName /t REG_SZ /d User /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultPassword /t REG_SZ /d "" /f >> "%LOG%" 2>&1
+reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon /t REG_SZ /d 1 /f >> "%LOG%" 2>&1
+reg delete "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoLogonCount /f >> "%LOG%" 2>&1
+echo final passwordless autologon configured >> "%LOG%"
+shutdown /r /t 15 /f >> "%LOG%" 2>&1
 goto end
 
 :end

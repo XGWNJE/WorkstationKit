@@ -2,7 +2,7 @@
 
 在一台 Windows 11 宿主机上，用 VMware Workstation 把 Windows 7 旗舰版 SP1 x64 装成虚拟机，**全程无需人工干预**，并自动装完前置补丁与 VMware Tools。
 
-本文记录的是**实测跑通的流程**，以及在真机上踩到的两个真实根因。这两个根因的报错都很含糊，值得单独记住。
+本文给出一条经过实机验证、可重复执行的完整流程：全新建盘、无人值守安装、补齐 SHA-2 支持、安装 VMware Tools，最后切换为无密码自动登录。
 
 ---
 
@@ -62,16 +62,23 @@ vmware-vdiskmanager.exe -c -s 30GB -a lsilogic -t 0 "<磁盘路径>.vmdk"
 
 关键机制：**Windows 安装程序会扫描所有可移动介质的根目录寻找 `Autounattend.xml`**。所以不必改动原版镜像（改动会破坏哈希），只需**另建一张小光盘**：
 
-```bat
-mkisofs.exe -J -joliet-long -R -l -V UNATTEND -o "<输出>.iso" "<应答文件所在目录>"
+```powershell
+.\win7-unattend\New-UnattendIso.ps1 `
+  -OutputIso '<虚拟机目录>\unattend.iso' `
+  -Kb4490628 '<下载目录>\windows6.1-kb4490628-x64_....msu' `
+  -Kb4474419 '<下载目录>\windows6.1-kb4474419-v3-x64_....msu'
 ```
+
+构建脚本会完成四项检查和转换：校验两枚补丁的 SHA-1、生成随机安装临时密码、强制 `w7payload.cmd` 使用 CRLF、调用 Workstation 自带的 `mkisofs.exe` 生成 ISO。临时密码不会输出；置备完成后会从账户和自动登录配置中清除。
 
 应答文件要点：
 
 - `/IMAGE/INDEX` 取 **4**（该镜像内 1=家庭普通版 2=家庭高级版 3=专业版 4=旗舰版，可用 `dism /Get-WimInfo /WimFile:<盘>:\sources\install.wim` 核对）
 - 单分区 + `WillWipeDisk`
 - **跳过产品密钥**：`<ProductKey><Key></Key><WillShowUI>Never</WillShowUI></ProductKey>`
-- 账户用 `UserAccounts/LocalAccounts` 建本地管理员，并让 `AutoLogon` 用**同一个密码**
+- 账户用 `UserAccounts/LocalAccounts` 建本地管理员；安装阶段 `AutoLogon` 使用相同的临时密码
+- 不写 `AdministratorPassword`，该项不属于 Win7 的 oobeSystem 设置
+- 批处理文件必须为 CRLF；始终通过 `New-UnattendIso.ps1` 构建应答光盘
 
 ## 步骤 4：启动安装
 
@@ -87,67 +94,9 @@ vmcli.exe "<vmx路径>" MKS captureScreenshot "<输出>.png"
 
 ---
 
-## 根因一：Win7 的 oobeSystem 不支持 `AdministratorPassword`
+## 可重复安装约束
 
-**现象**：安装文件都铺完了，在"安装程序正在为首次使用计算机做准备"阶段弹窗 —— 要么是"无法分析或处理 pass [oobeSystem] 的无人参与应答文件……组件或设置不存在"，要么是"Windows 无法完成安装"。
-
-**报错本身不说是哪一项**。真正的答案在客机日志里：
-
-```
-[oobeldr.exe] SMI data results dump: Source = Name: Microsoft-Windows-Shell-Setup, /settings/AdministratorPassword
-[oobeldr.exe] SMI data results dump: Description = Setting is not defined in this component.
-[oobeldr.exe] Failed to complete RunSMIPass for oobeSystem.  Error: [0x8030000C]
-```
-
-**结论**：`AdministratorPassword` 在 Win7 的 oobeSystem 组件里**根本不存在**（它是 Windows 8+ 才有的设置项）。放进 Win7 应答文件就会让整个 oobeSystem 阶段以 `0x8030000C` 中止。
-
-**正确写法**：
-
-```xml
-<settings pass="oobeSystem">
-  <component name="Microsoft-Windows-Shell-Setup" ...>
-    <UserAccounts>
-      <LocalAccounts>
-        <LocalAccount wcm:action="add">
-          <Name>User</Name>
-          <Group>Administrators</Group>
-          <Password>
-            <Value>REPLACE_WITH_YOUR_PASSWORD</Value>
-            <PlainText>true</PlainText>
-          </Password>
-        </LocalAccount>
-      </LocalAccounts>
-    </UserAccounts>
-    <AutoLogon>
-      <Enabled>true</Enabled>
-      <LogonCount>30</LogonCount>
-      <Username>User</Username>
-      <Password>
-        <Value>REPLACE_WITH_YOUR_PASSWORD</Value>
-        <PlainText>true</PlainText>
-      </Password>
-    </AutoLogon>
-  </component>
-</settings>
-```
-
-要点：**不要**写 `AdministratorPassword`；用 `LocalAccounts` 建普通账户（会自动加入 Administrators），并让 `AutoLogon` 的密码与账户密码**逐字相同**。
-
-## 根因二：失败后重复"重装"其实没有重装
-
-这个坑更隐蔽，会让人误以为修好了却没生效。
-
-- oobeSystem 一旦失败，**失败状态会被写进客机注册表**。日志表现是：
-  ```
-  [oobeldr.exe] Status for unattend pass [oobeSystem] = 0x1
-  [oobeldr.exe] Pass has failed status; system is in an invalid state.
-  ```
-  此后每次启动都在解析应答文件**之前**就中止，因此**改应答文件毫无作用**。
-- 更麻烦的是：Win7 光盘启动时会提示"按任意键从光盘启动"，**无人按键就会超时回落硬盘**，于是启动的是那台半装的旧系统，恢复上一次失败的安装。
-
-**识别方法**：看 oobeSystem 出现在启动后多久。全新安装约需 5 分钟才到该阶段；如果只过了 30–45 秒，那它根本没重装。
-
-**规避做法**：**每次尝试前重建虚拟磁盘，并在安装完成后断开安装光盘**，避免回落。
+每次执行都从新建虚拟磁盘开始，并在置备完成后断开安装光盘、应答光盘和 Tools 光盘。这样安装输入、磁盘状态和启动顺序保持一致。
 
 ```bat
 :: 重建磁盘，保证是干净安装
@@ -174,7 +123,7 @@ oobeSystem 阶段的日志在 **`Windows\Panther\UnattendGC\`**（不是 `Window
 
 `FirstLogonCommands` 可以自动执行脚本，但有两点必须处理：
 
-**1. 顺序**：VMware Tools 13.x 的驱动是 SHA-2 签名的，Win7 SP1 原版镜像**没有 SHA-2 支持**，直接装 Tools 会失败。所以顺序是：
+**1. 顺序**：VMware Tools 13.x 的驱动是 SHA-2 签名的，Win7 SP1 原版镜像需要先补齐 SHA-2 支持。所以顺序是：
 
 1. `KB4490628`（服务堆栈更新）→ 2. `KB4474419`（SHA-2 签名支持）→ **重启** → 3. VMware Tools
 
@@ -206,7 +155,7 @@ if not exist "%ProgramFiles%\VMware\VMware Tools\vmtoolsd.exe" goto phase2   :: 
 
 ## 补完体验指数（Aero 的判定依据）
 
-Win7 的 Aero 需要 WDDM 驱动 + 3D 加速，还需要**体验指数**存在。无人值守安装会跳过体验指数评估。而 `winsat formal` 在大内存虚拟机上会因内存子项失败而半途中止：
+Win7 的 Aero 需要 WDDM 驱动 + 3D 加速，还需要**体验指数**存在。无人值守安装会跳过体验指数评估；大内存虚拟机应显式限定内存评估缓冲区：
 
 ```
 > 正在运行: 系统内存性能评估 ''
@@ -245,13 +194,10 @@ vmrun.exe -T ws -gu <用户> -gp <密码> copyFileFromGuestToHost "<vmx>" "C:\ch
 
 ---
 
-## 踩坑清单
+## 完成判据
 
-| 现象 | 根因 | 处理 |
-|---|---|---|
-| oobeSystem 报"组件或设置不存在" | `AdministratorPassword` 非 Win7 设置项 | 改用 `LocalAccounts` + 同名 `AutoLogon` |
-| 改完应答文件仍报同样错误，且 oobeSystem 出现得过早 | 回落硬盘恢复了旧安装；失败状态已入库 | 每次重建磁盘；装完断开安装光盘 |
-| 32 位/64 位混淆 | — | 见汉化文档的同类问题 |
-| `winsat formal` 半途失败 | 内存子项默认缓冲区超限 | `winsat mem -buffersize 32MB` + `winsat formal -restart never` |
-| 装 Tools 失败 | Win7 SP1 缺 SHA-2 支持 | 先 KB4490628 → KB4474419 → 重启 → Tools |
-| 自建标记文件导致流程被永久跳过 | 判据不是真实状态 | 改为查补丁/Tools 是否真的存在 |
+- 冷启动直接进入 `User` 桌面，不出现密码框。
+- 原安装临时密码无法再用于 VMware 来宾认证。
+- `vmrun getGuestIPAddress "<vmx路径>" -wait` 返回来宾 IP，证明 VMware Tools 正常通信。
+- `KB4490628`、`KB4474419` 和 `VMTools` 服务均从客机真实状态读取确认。
+- `sata0:1`、`sata0:2`、`sata0:3` 均设为 `startConnected = "FALSE"`，启动顺序改为 `hdd,cdrom`。

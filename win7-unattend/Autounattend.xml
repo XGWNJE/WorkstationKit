@@ -5,9 +5,9 @@
   用法：放到一张单独的小光盘根目录（不是改造原版镜像），
         Windows 安装程序会扫描可移动介质根目录中的 Autounattend.xml。
 
-  部署前必须修改：
-        REPLACE_WITH_YOUR_PASSWORD —— 出现两次，必须逐字相同：
-        LocalAccounts 里账户的密码，与 AutoLogon 的密码。
+  构建时由 New-UnattendIso.ps1 自动替换：
+        密码占位符仅用于安装阶段，出现两次且必须相同。
+        置备完成后 w7payload.cmd 会清空该密码并保留自动登录。
 
   注意：这里刻意不写 <AdministratorPassword>。
        该设置项在 Win7 的 oobeSystem 组件里不存在（属 Windows 8+），
@@ -143,7 +143,7 @@
         </LocalAccounts>
       </UserAccounts>
 
-      <!-- 自动登录密码必须与上面账户密码逐字相同，否则登录失败、安装无法收尾 -->
+      <!-- 安装阶段自动登录；置备完成后脚本会清空临时密码 -->
       <AutoLogon>
         <Enabled>true</Enabled>
         <LogonCount>30</LogonCount>
