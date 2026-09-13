@@ -13,7 +13,7 @@ VMware Workstation 26H1 的两件事，我踩过坑之后整理在这儿：
 
 https://pan.quark.cn/s/3577e8370038　　提取码：`xLms`
 
-包里附了校验清单。**建议还是对一下哈希、验一下签名**再装，方法见 [docs/downloads.md](docs/downloads.md)。
+包里附了校验清单（[仓库里也有一份](docs/netdisk-manifest.md)）。**建议还是对一下哈希、验一下签名**再装，方法见 [docs/downloads.md](docs/downloads.md)。
 
 ## 文档
 
