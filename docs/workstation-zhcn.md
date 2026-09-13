@@ -89,10 +89,16 @@ wui::util::LoadLanguageDLL: unable to load vmappsdk-zh_CN.dll
 
 本仓库**不重新分发**语言文件（版权与上游许可原因）。你需要自己获取。**无论从哪里拿到，都要先验签。**
 
+> 完整获取入口与校验值见 **[downloads.md](downloads.md) 第五节**。下面是要点。
+
 ### 从哪里获取
 
-- **官方**：Broadcom 支持门户可下载 17.6.x 安装包（需免费账号）。17.6.4 是最后一个带中文的版本。从安装包中取出 `messages\zh_CN\` 三个文件即是原厂文件。
-- **社区**：已有热心人把 17.6.4 的 `zh_CN` 提取好放出（GitHub 上搜 `VMware Workstation Chinese Localization` 一类关键词）。**注意其自述通常为"禁止二次分发，仅作学习存档"** —— 自用可以，别再转发。
+- **官方（最干净）**：从 Broadcom 支持门户下载 **17.6.x** 安装包（需免费账号），17.6.4 是最后一个带中文的版本。取出其中的 `messages\zh_CN\` 三个文件即是原厂文件。
+  入口：https://support.broadcom.com → 登录 → 搜 `Workstation` → 在版本列表选 **17.6.x**
+- **社区成品（已核验可达）**：已有整理好的 17.6.4 `zh_CN` 放在 GitHub：
+  **https://github.com/Kuroba-Sayuki/VMware-Workstation-Chinese-Localization**
+  语言文件位于该仓库的 `VMware Workstation Messages/zh_CN/` 目录。
+  **注意其自述为「禁止二次分发，仅作学习＆存档使用」** —— 自用可以，别再转发。
 
 ### 必须做的验签
 

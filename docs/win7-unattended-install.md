@@ -12,6 +12,8 @@
 - 安装镜像：`cn_windows_7_ultimate_with_sp1_x64_dvd_u_677408.iso`（微软 MSDN 原版，SHA1 `2ce0b2db34d76ed3f697ce148cb7594432405e23`）
 - 宿主机虚拟化未被 Hyper-V 占用（本项目实测为 `HypervisorPresent=False`，VMware 走原生 VMM）
 
+> 各项的**具体下载入口与校验值**见 [downloads.md](downloads.md)。安装包务必先验签名与哈希，镜像务必先比对 SHA1。
+
 ---
 
 ## 步骤 1：核验安装包
